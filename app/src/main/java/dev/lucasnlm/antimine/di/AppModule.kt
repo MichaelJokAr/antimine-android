@@ -1,18 +1,45 @@
 package dev.lucasnlm.antimine.di
 
-import android.content.Context
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ApplicationComponent
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.lucasnlm.antimine.instant.InstantAppManager
+import dev.lucasnlm.antimine.support.IapHandler
+import dev.lucasnlm.antimine.common.BuildConfig
+import dev.lucasnlm.antimine.core.analytics.DebugAnalyticsManager
+import dev.lucasnlm.antimine.core.analytics.IAnalyticsManager
+import dev.lucasnlm.antimine.core.analytics.ProdAnalyticsManager
+import dev.lucasnlm.antimine.share.ShareManager
+import dev.lucasnlm.external.AdsManager
+import dev.lucasnlm.external.BillingManager
+import dev.lucasnlm.external.ExternalAnalyticsWrapper
+import dev.lucasnlm.external.IAdsManager
+import dev.lucasnlm.external.IBillingManager
+import dev.lucasnlm.external.IInstantAppManager
+import dev.lucasnlm.external.IPlayGamesManager
+import dev.lucasnlm.external.IReviewWrapper
+import dev.lucasnlm.external.InstantAppManager
+import dev.lucasnlm.external.PlayGamesManager
+import dev.lucasnlm.external.ReviewWrapper
+import org.koin.dsl.bind
+import org.koin.dsl.module
 
-@Module
-@InstallIn(ApplicationComponent::class)
-class AppModule {
-    @Provides
-    fun provideInstantAppManager(
-        @ApplicationContext context: Context
-    ): InstantAppManager = InstantAppManager(context)
+val AppModule = module {
+    single { InstantAppManager() } bind IInstantAppManager::class
+
+    single { BillingManager(get()) } bind IBillingManager::class
+
+    single { AdsManager() } bind IAdsManager::class
+
+    single { PlayGamesManager(get()) } bind IPlayGamesManager::class
+
+    single { ReviewWrapper() } bind IReviewWrapper::class
+
+    single { ShareManager(get(), get()) }
+
+    single { IapHandler(get(), get(), get()) }
+
+    single {
+        if (BuildConfig.DEBUG) {
+            DebugAnalyticsManager()
+        } else {
+            ProdAnalyticsManager(ExternalAnalyticsWrapper(get()))
+        }
+    } bind IAnalyticsManager::class
 }

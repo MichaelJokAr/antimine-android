@@ -4,11 +4,11 @@ data class Area(
     val id: Int,
     val posX: Int,
     val posY: Int,
-    var minesAround: Int = 0,
-    var safeZone: Boolean = false,
-    var hasMine: Boolean = false,
-    var mistake: Boolean = false,
-    var isCovered: Boolean = true,
-    var mark: Mark = Mark.None,
-    var highlighted: Boolean = false
+    val minesAround: Int = 0,
+    val hasMine: Boolean = false,
+    val mistake: Boolean = false,
+    val isCovered: Boolean = true,
+    val mark: Mark = Mark.None,
+    val highlighted: Boolean = false,
+    val revealed: Boolean = false,
 )

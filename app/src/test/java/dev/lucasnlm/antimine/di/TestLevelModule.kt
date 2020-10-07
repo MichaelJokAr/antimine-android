@@ -1,12 +1,5 @@
 package dev.lucasnlm.antimine.di
 
-import androidx.lifecycle.MutableLiveData
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ActivityComponent
-import dev.lucasnlm.antimine.common.level.models.Event
-import dev.lucasnlm.antimine.common.level.repository.IDimensionRepository
 import dev.lucasnlm.antimine.common.level.repository.IMinefieldRepository
 import dev.lucasnlm.antimine.common.level.repository.ISavesRepository
 import dev.lucasnlm.antimine.common.level.repository.IStatsRepository
@@ -15,30 +8,28 @@ import dev.lucasnlm.antimine.common.level.repository.MemoryStatsRepository
 import dev.lucasnlm.antimine.common.level.utils.Clock
 import dev.lucasnlm.antimine.common.level.utils.IHapticFeedbackManager
 import dev.lucasnlm.antimine.mocks.DisabledHapticFeedbackManager
-import dev.lucasnlm.antimine.mocks.FixedDimensionRepository
 import dev.lucasnlm.antimine.mocks.FixedMinefieldRepository
+import org.koin.dsl.bind
+import org.koin.dsl.module
 
-@Module
-@InstallIn(ActivityComponent::class)
-class TestLevelModule {
-    @Provides
-    fun provideGameEventObserver(): MutableLiveData<Event> = MutableLiveData()
+val TestLevelModule = module {
+    single {
+        Clock()
+    }
 
-    @Provides
-    fun provideClock(): Clock = Clock()
+    single {
+        MemorySavesRepository()
+    } bind ISavesRepository::class
 
-    @Provides
-    fun provideDimensionRepository(): IDimensionRepository = FixedDimensionRepository()
+    single {
+        MemoryStatsRepository()
+    } bind IStatsRepository::class
 
-    @Provides
-    fun provideSavesRepository(): ISavesRepository = MemorySavesRepository()
+    single {
+        FixedMinefieldRepository()
+    } bind IMinefieldRepository::class
 
-    @Provides
-    fun provideStatsRepository(): IStatsRepository = MemoryStatsRepository()
-
-    @Provides
-    fun provideMinefieldRepository(): IMinefieldRepository = FixedMinefieldRepository()
-
-    @Provides
-    fun provideHapticFeedbackInteractor(): IHapticFeedbackManager = DisabledHapticFeedbackManager()
+    single {
+        DisabledHapticFeedbackManager()
+    } bind IHapticFeedbackManager::class
 }

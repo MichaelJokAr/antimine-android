@@ -38,6 +38,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
+        android:targetSandboxVersion="2"
         tools:targetApi="lollipop">
 
         <activity
@@ -117,21 +118,6 @@
         </activity>
 
         <activity
-            android:name="dev.lucasnlm.antimine.TvGameActivity"
-            android:configChanges="screenSize|orientation"
-            android:theme="@style/AppTheme.NoActionBar">
-            <!--            <intent-filter>-->
-            <!--                <action android:name="android.intent.action.MAIN"/>-->
-            <!--                <category android:name="android.intent.category.LAUNCHER"/>-->
-            <!--            </intent-filter>-->
-
-            <!--            <intent-filter>-->
-            <!--                <action android:name="android.intent.action.MAIN" />-->
-            <!--                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />-->
-            <!--            </intent-filter>-->
-        </activity>
-
-        <activity
             android:name="dev.lucasnlm.antimine.text.TextActivity"
             android:theme="@style/AppTheme">
             <meta-data
@@ -142,6 +128,16 @@
         <activity
             android:name="dev.lucasnlm.antimine.about.AboutActivity"
             android:label="@string/about"
+            android:theme="@style/AppTheme">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="dev.lucasnlm.antimine.GameActivity" />
+        </activity>
+
+        <activity
+            android:label="@string/themes"
+            android:name="dev.lucasnlm.antimine.theme.ThemeActivity"
+            android:configChanges="orientation|screenSize"
             android:theme="@style/AppTheme">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"

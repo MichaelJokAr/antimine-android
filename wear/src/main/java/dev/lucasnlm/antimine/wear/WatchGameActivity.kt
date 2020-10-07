@@ -1,20 +1,16 @@
 package dev.lucasnlm.antimine.wear
 
 import android.os.Bundle
-import android.os.Handler
 import android.text.format.DateFormat
 import android.text.format.DateUtils
 import android.view.View
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.os.HandlerCompat
 import androidx.fragment.app.FragmentTransaction
-import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.wear.ambient.AmbientModeSupport
 import androidx.wear.ambient.AmbientModeSupport.AmbientCallback
 import androidx.wear.ambient.AmbientModeSupport.EXTRA_LOWBIT_AMBIENT
 import androidx.wear.widget.SwipeDismissFrameLayout
-import dagger.hilt.android.AndroidEntryPoint
 import dev.lucasnlm.antimine.R
 import dev.lucasnlm.antimine.common.level.models.AmbientSettings
 import dev.lucasnlm.antimine.common.level.models.Event
@@ -24,16 +20,13 @@ import dev.lucasnlm.antimine.common.level.viewmodel.GameViewModel
 import kotlinx.android.synthetic.main.activity_level.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
-class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbackProvider {
+class WatchGameActivity : AppCompatActivity(R.layout.activity_level), AmbientModeSupport.AmbientCallbackProvider {
 
-    private val viewModel: GameViewModel by viewModels()
-
-    private val ambientController: AmbientModeSupport.AmbientController by lazy {
-        AmbientModeSupport.attach(this)
-    }
+    private val viewModel by viewModel<GameViewModel>()
 
     private var currentLevelFragment: WatchLevelFragment? = null
 
@@ -67,17 +60,19 @@ class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbac
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_level)
+        AmbientModeSupport.attach(this)
 
         bindViewModel()
         loadGameFragment()
 
-        swipe.addCallback(object : SwipeDismissFrameLayout.Callback() {
-            override fun onDismissed(layout: SwipeDismissFrameLayout) {
-                swipe.visibility = View.GONE
-                finish()
+        swipe.addCallback(
+            object : SwipeDismissFrameLayout.Callback() {
+                override fun onDismissed(layout: SwipeDismissFrameLayout) {
+                    swipe.visibility = View.GONE
+                    finish()
+                }
             }
-        })
+        )
     }
 
     override fun onResume() {
@@ -129,19 +124,19 @@ class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbac
     private fun bindViewModel() = viewModel.apply {
         eventObserver.observe(
             this@WatchGameActivity,
-            Observer {
+            {
                 onGameEvent(it)
             }
         )
         elapsedTimeSeconds.observe(
             this@WatchGameActivity,
-            Observer {
+            {
                 // Nothing
             }
         )
         mineCount.observe(
             this@WatchGameActivity,
-            Observer {
+            {
                 if (it > 0) {
                     messageText.text = applicationContext.getString(R.string.mines_remaining, it)
                 }
@@ -149,7 +144,7 @@ class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbac
         )
         difficulty.observe(
             this@WatchGameActivity,
-            Observer {
+            {
                 // Nothing
             }
         )
@@ -167,7 +162,6 @@ class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbac
             }
             Event.Victory -> {
                 status = Status.Over()
-
                 messageText.text = getString(R.string.victory)
                 waitAndShowNewGameButton()
             }
@@ -175,21 +169,10 @@ class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbac
                 status = Status.Over()
                 viewModel.stopClock()
 
-                GlobalScope.launch(context = Dispatchers.Main) {
-                    viewModel.gameOver(false)
+                lifecycleScope.launch(context = Dispatchers.Main) {
                     messageText.text = getString(R.string.game_over)
                     waitAndShowNewGameButton()
                 }
-            }
-            Event.ResumeVictory -> {
-                status = Status.Over()
-                messageText.text = getString(R.string.victory)
-                waitAndShowNewGameButton(0L)
-            }
-            Event.ResumeGameOver -> {
-                status = Status.Over()
-                messageText.text = getString(R.string.game_over)
-                waitAndShowNewGameButton(0L)
             }
             else -> {
             }
@@ -197,21 +180,18 @@ class WatchGameActivity : AppCompatActivity(), AmbientModeSupport.AmbientCallbac
     }
 
     private fun waitAndShowNewGameButton(wait: Long = DateUtils.SECOND_IN_MILLIS) {
-        HandlerCompat.postDelayed(
-            Handler(),
-            {
-                if (this.status is Status.Over && !isFinishing) {
-                    newGame.visibility = View.VISIBLE
-                    newGame.setOnClickListener {
-                        it.visibility = View.GONE
-                        GlobalScope.launch {
-                            viewModel.startNewGame()
-                        }
+        lifecycleScope.launch {
+            delay(wait)
+            if (status is Status.Over && !isFinishing) {
+                newGame.visibility = View.VISIBLE
+                newGame.setOnClickListener {
+                    it.visibility = View.GONE
+                    GlobalScope.launch {
+                        viewModel.startNewGame()
                     }
                 }
-            },
-            null, wait
-        )
+            }
+        }
     }
 
     override fun getAmbientCallback(): AmbientCallback = ambientMode

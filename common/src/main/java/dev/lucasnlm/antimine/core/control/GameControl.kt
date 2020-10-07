@@ -8,6 +8,7 @@ enum class ActionResponse {
     SwitchMark,
     HighlightNeighbors,
     OpenNeighbors,
+    OpenOrMark,
 }
 
 /**
@@ -16,7 +17,7 @@ enum class ActionResponse {
 data class Actions(
     val singleClick: ActionResponse?,
     val doubleClick: ActionResponse?,
-    val longPress: ActionResponse?
+    val longPress: ActionResponse?,
 )
 
 /**
@@ -26,7 +27,9 @@ data class Actions(
 enum class ControlStyle {
     Standard,
     DoubleClick,
-    FastFlag
+    FastFlag,
+    DoubleClickInverted,
+    SwitchMarkOpen
 }
 
 /**
@@ -36,19 +39,19 @@ enum class ControlStyle {
 sealed class GameControl(
     val id: ControlStyle,
     val onCovered: Actions,
-    val onOpen: Actions
+    val onOpen: Actions,
 ) {
     object Standard : GameControl(
         id = ControlStyle.Standard,
         onCovered = Actions(
             singleClick = ActionResponse.OpenTile,
             longPress = ActionResponse.SwitchMark,
-            doubleClick = null
+            doubleClick = null,
         ),
         onOpen = Actions(
             singleClick = ActionResponse.HighlightNeighbors,
             longPress = ActionResponse.OpenNeighbors,
-            doubleClick = null
+            doubleClick = null,
         )
     )
 
@@ -57,12 +60,12 @@ sealed class GameControl(
         onCovered = Actions(
             singleClick = ActionResponse.SwitchMark,
             longPress = ActionResponse.OpenTile,
-            doubleClick = null
+            doubleClick = null,
         ),
         onOpen = Actions(
             singleClick = ActionResponse.OpenNeighbors,
             longPress = ActionResponse.HighlightNeighbors,
-            doubleClick = null
+            doubleClick = null,
         )
     )
 
@@ -71,12 +74,40 @@ sealed class GameControl(
         onCovered = Actions(
             singleClick = ActionResponse.SwitchMark,
             longPress = null,
-            doubleClick = ActionResponse.OpenTile
+            doubleClick = ActionResponse.OpenTile,
         ),
         onOpen = Actions(
             singleClick = ActionResponse.HighlightNeighbors,
             longPress = null,
-            doubleClick = ActionResponse.OpenNeighbors
+            doubleClick = ActionResponse.OpenNeighbors,
+        )
+    )
+
+    object DoubleClickInverted : GameControl(
+        id = ControlStyle.DoubleClickInverted,
+        onCovered = Actions(
+            singleClick = ActionResponse.OpenTile,
+            longPress = null,
+            doubleClick = ActionResponse.SwitchMark,
+        ),
+        onOpen = Actions(
+            singleClick = ActionResponse.HighlightNeighbors,
+            longPress = null,
+            doubleClick = ActionResponse.OpenNeighbors,
+        )
+    )
+
+    object SwitchMarkOpen : GameControl(
+        id = ControlStyle.SwitchMarkOpen,
+        onCovered = Actions(
+            singleClick = ActionResponse.OpenOrMark,
+            longPress = null,
+            doubleClick = null,
+        ),
+        onOpen = Actions(
+            singleClick = ActionResponse.HighlightNeighbors,
+            longPress = null,
+            doubleClick = null,
         )
     )
 
@@ -86,16 +117,9 @@ sealed class GameControl(
                 ControlStyle.Standard -> Standard
                 ControlStyle.DoubleClick -> DoubleClick
                 ControlStyle.FastFlag -> FastFlag
+                ControlStyle.DoubleClickInverted -> DoubleClickInverted
+                ControlStyle.SwitchMarkOpen -> SwitchMarkOpen
             }
         }
     }
 }
-
-/**
- * A data class used to make feedback or analytics to an user action.
- */
-data class ActionFeedback(
-    val actionResponse: ActionResponse?,
-    val index: Int,
-    val multipleChanges: Boolean
-)

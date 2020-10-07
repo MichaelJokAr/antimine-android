@@ -1,22 +1,36 @@
 package dev.lucasnlm.antimine.text.viewmodel
 
-import android.app.Application
+import android.content.Context
+import android.content.res.Resources
 import androidx.annotation.RawRes
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
+import dev.lucasnlm.antimine.core.viewmodel.IntentViewModel
+import dev.lucasnlm.antimine.text.models.TextState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 
 class TextViewModel(
-    application: Application
-) : AndroidViewModel(application) {
+    private val context: Context,
+) : IntentViewModel<TextEvent, TextState>() {
 
-    val text = MutableLiveData<String>()
+    private suspend fun loadText(@RawRes rawFile: Int): String? {
+        return try {
+            withContext(Dispatchers.IO) {
+                context.resources.openRawResource(rawFile)
+                    .bufferedReader()
+                    .readLines()
+                    .joinToString("\n")
+            }
+        } catch (e: Resources.NotFoundException) {
+            ""
+        }
+    }
 
-    fun loadText(@RawRes rawFile: Int) {
-        val result = getApplication<Application>().resources.openRawResource(rawFile)
-            .bufferedReader()
-            .readLines()
-            .joinToString("\n")
+    override fun initialState(): TextState = TextState("", "")
 
-        text.postValue(result)
+    override suspend fun mapEventToState(event: TextEvent) = flow {
+        if (event is TextEvent.LoadText) {
+            emit(TextState(event.title, loadText(event.rawFileRes)))
+        }
     }
 }

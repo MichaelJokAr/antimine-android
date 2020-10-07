@@ -1,51 +1,81 @@
 package dev.lucasnlm.antimine.stats
 
 import android.os.Bundle
-import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
-import dagger.hilt.android.AndroidEntryPoint
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import dev.lucasnlm.antimine.R
-import dev.lucasnlm.antimine.common.level.repository.IStatsRepository
+import dev.lucasnlm.antimine.ThematicActivity
+import dev.lucasnlm.antimine.core.themes.repository.IThemeRepository
+import dev.lucasnlm.antimine.stats.view.StatsAdapter
+import dev.lucasnlm.antimine.stats.viewmodel.StatsEvent
 import dev.lucasnlm.antimine.stats.viewmodel.StatsViewModel
+import dev.lucasnlm.external.IInstantAppManager
 import kotlinx.android.synthetic.main.activity_stats.*
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
-class StatsActivity : AppCompatActivity(R.layout.activity_stats) {
-    @Inject
-    lateinit var statsRepository: IStatsRepository
-
-    private val viewModel: StatsViewModel by viewModels()
+class StatsActivity : ThematicActivity(R.layout.activity_stats) {
+    private val statsViewModel by viewModel<StatsViewModel>()
+    private val instantAppManager: IInstantAppManager by inject()
+    private val themeRepository: IThemeRepository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.statsObserver.observe(
-            this,
-            Observer {
-                minesCount.text = it.mines.toString()
-                totalTime.text = formatTime(it.duration)
-                averageTime.text = formatTime(it.averageDuration)
-                totalGames.text = it.totalGames.toString()
-                performance.text = formatPercentage(100.0 * it.victory / it.totalGames)
-                openAreas.text = it.openArea.toString()
-                victory.text = it.victory.toString()
-                defeat.text = (it.totalGames - it.victory).toString()
-            }
-        )
 
-        GlobalScope.launch {
-            viewModel.loadStats(statsRepository)
+        recyclerView.apply {
+            setHasFixedSize(true)
+            layoutManager = LinearLayoutManager(context)
+        }
+
+        lifecycleScope.launchWhenResumed {
+            statsViewModel.sendEvent(StatsEvent.LoadStats)
+
+            statsViewModel.observeState().collect {
+                recyclerView.adapter = StatsAdapter(it.stats, themeRepository)
+                empty.visibility = if (it.stats.isEmpty()) View.VISIBLE else View.GONE
+
+                if (it.showAds && !instantAppManager.isEnabled(applicationContext)) {
+                    ad_placeholder.visibility = View.VISIBLE
+                    ad_placeholder.loadAd()
+                }
+            }
         }
     }
 
-    companion object {
-        private fun formatPercentage(value: Double) =
-            String.format("%.2f%%", value)
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        statsViewModel.singleState().let {
+            if (it.stats.isNotEmpty()) {
+                menuInflater.inflate(R.menu.delete_icon_menu, menu)
+            }
+        }
+        return true
+    }
 
-        private fun formatTime(durationSecs: Long) =
-            String.format("%02d:%02d:%02d", durationSecs / 3600, durationSecs % 3600 / 60, durationSecs % 60)
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return if (item.itemId == R.id.delete) {
+            confirmAndDelete()
+            true
+        } else {
+            super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun confirmAndDelete() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.are_you_sure)
+            .setMessage(R.string.delete_all_message)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete_all) { _, _ ->
+                lifecycleScope.launch {
+                    statsViewModel.sendEvent(StatsEvent.DeleteStats)
+                }
+            }
+            .show()
     }
 }

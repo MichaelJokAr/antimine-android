@@ -1,50 +1,83 @@
 package dev.lucasnlm.antimine.control.viewmodel
 
-import androidx.hilt.lifecycle.ViewModelInject
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import dev.lucasnlm.antimine.R
-import dev.lucasnlm.antimine.control.model.ControlDetails
+import dev.lucasnlm.antimine.control.models.ControlDetails
 import dev.lucasnlm.antimine.core.control.ControlStyle
 import dev.lucasnlm.antimine.core.preferences.IPreferencesRepository
+import dev.lucasnlm.antimine.core.viewmodel.IntentViewModel
+import kotlinx.coroutines.flow.flow
 
-class ControlViewModel @ViewModelInject constructor(
-    private val preferencesRepository: IPreferencesRepository
-) : ViewModel() {
-    val controlTypeSelected = MutableLiveData(preferencesRepository.controlStyle())
+class ControlViewModel(
+    private val preferencesRepository: IPreferencesRepository,
+) : IntentViewModel<ControlEvent, ControlState>() {
 
-    val gameControlOptions = listOf(
+    private val gameControlOptions = listOf(
         ControlDetails(
             id = 0L,
             controlStyle = ControlStyle.Standard,
-            titleId = R.string.standard,
             firstActionId = R.string.single_click,
             firstActionResponseId = R.string.open_tile,
             secondActionId = R.string.long_press,
-            secondActionResponseId = R.string.flag_tile
+            secondActionResponseId = R.string.flag_tile,
         ),
         ControlDetails(
             id = 1L,
             controlStyle = ControlStyle.FastFlag,
-            titleId = R.string.flag_first,
             firstActionId = R.string.single_click,
             firstActionResponseId = R.string.flag_tile,
             secondActionId = R.string.long_press,
-            secondActionResponseId = R.string.open_tile
+            secondActionResponseId = R.string.open_tile,
         ),
         ControlDetails(
             id = 2L,
             controlStyle = ControlStyle.DoubleClick,
-            titleId = R.string.double_click,
             firstActionId = R.string.single_click,
             firstActionResponseId = R.string.flag_tile,
             secondActionId = R.string.double_click,
-            secondActionResponseId = R.string.open_tile
+            secondActionResponseId = R.string.open_tile,
+        ),
+        ControlDetails(
+            id = 3L,
+            controlStyle = ControlStyle.DoubleClickInverted,
+            firstActionId = R.string.single_click,
+            firstActionResponseId = R.string.open_tile,
+            secondActionId = R.string.double_click,
+            secondActionResponseId = R.string.flag_tile,
+        ),
+        ControlDetails(
+            id = 4L,
+            controlStyle = ControlStyle.SwitchMarkOpen,
+            firstActionId = R.string.switch_control_desc,
+            firstActionResponseId = 0,
+            secondActionId = 0,
+            secondActionResponseId = 0,
         )
     )
 
-    fun selectControlType(controlStyle: ControlStyle) {
-        preferencesRepository.useControlStyle(controlStyle)
-        controlTypeSelected.postValue(controlStyle)
+    override fun initialState(): ControlState {
+        val controlDetails = gameControlOptions.firstOrNull {
+            it.controlStyle == preferencesRepository.controlStyle()
+        }
+        return ControlState(
+            selectedIndex = controlDetails?.id?.toInt() ?: 0,
+            selected = controlDetails?.controlStyle ?: ControlStyle.Standard,
+            gameControls = gameControlOptions
+        )
+    }
+
+    override suspend fun mapEventToState(event: ControlEvent) = flow {
+        if (event is ControlEvent.SelectControlStyle) {
+            val controlStyle = event.controlStyle
+            preferencesRepository.useControlStyle(controlStyle)
+
+            val selected = state.gameControls.first { it.controlStyle == event.controlStyle }
+
+            val newState = state.copy(
+                selectedIndex = selected.id.toInt(),
+                selected = selected.controlStyle
+            )
+
+            emit(newState)
+        }
     }
 }

@@ -12,8 +12,6 @@
         android:clipToPadding="false"
         android:fadeScrollbars="true"
         android:overScrollMode="never"
-        android:padding="78dp"
-        android:scrollbars="none"
-        android:alpha="0" />
+        android:scrollbars="none" />
 
 </FrameLayout>

@@ -1,74 +1,69 @@
 package dev.lucasnlm.antimine.common.level.view
 
+import android.content.Context
 import android.os.Bundle
-import android.util.TypedValue
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
+import dev.lucasnlm.antimine.common.R
+import dev.lucasnlm.antimine.common.level.models.Minefield
 import dev.lucasnlm.antimine.common.level.repository.IDimensionRepository
 import dev.lucasnlm.antimine.common.level.viewmodel.GameViewModel
 import dev.lucasnlm.antimine.common.level.widget.FixedGridLayoutManager
 import dev.lucasnlm.antimine.core.preferences.IPreferencesRepository
-import javax.inject.Inject
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
+import kotlin.math.nextDown
 
-abstract class CommonLevelFragment : Fragment() {
-    @Inject
-    lateinit var dimensionRepository: IDimensionRepository
-
-    @Inject
-    lateinit var preferencesRepository: IPreferencesRepository
-
-    protected val viewModel: GameViewModel by activityViewModels()
-    protected val areaAdapter by lazy { AreaAdapter(requireContext(), viewModel, preferencesRepository) }
+abstract class CommonLevelFragment(@LayoutRes val contentLayoutId: Int) : Fragment(contentLayoutId) {
+    private val dimensionRepository: IDimensionRepository by inject()
+    private val preferencesRepository: IPreferencesRepository by inject()
+    protected val gameViewModel by sharedViewModel<GameViewModel>()
+    protected val areaAdapter by lazy {
+        AreaAdapter(requireContext(), gameViewModel, preferencesRepository, dimensionRepository)
+    }
     protected lateinit var recyclerGrid: RecyclerView
 
-    abstract val levelFragmentResId: Int
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        recyclerGrid = view.findViewById(R.id.recyclerGrid)
+    }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? = inflater.inflate(levelFragmentResId, container, false)
-
-    protected fun makeNewLayoutManager(boardWidth: Int) =
+    protected open fun makeNewLayoutManager(boardWidth: Int): RecyclerView.LayoutManager =
         FixedGridLayoutManager().apply {
             setTotalColumnCount(boardWidth)
         }
 
-    protected fun calcHorizontalPadding(boardWidth: Int): Int {
-        val context = requireContext()
-        val displayMetrics = context.resources.displayMetrics
-
-        val width = displayMetrics.widthPixels
-        val recyclerViewWidth = (dimensionRepository.areaSize() * boardWidth)
-        val separatorsWidth = (dimensionRepository.areaSeparator() * (boardWidth - 1))
-        return ((width - recyclerViewWidth - separatorsWidth) / 2).coerceAtLeast(0.0f).toInt()
+    protected fun setupRecyclerViewSize(view: View, levelSetup: Minefield) {
+        recyclerGrid.apply {
+            val horizontalPadding = calcHorizontalPadding(view, levelSetup.width)
+            val verticalPadding = calcVerticalPadding(view, levelSetup.height)
+            setPadding(horizontalPadding, verticalPadding, 0, 0)
+            layoutManager = makeNewLayoutManager(levelSetup.width)
+            adapter = areaAdapter
+        }
     }
 
-    protected fun calcVerticalPadding(boardHeight: Int): Int {
-        val context = requireContext()
-        val displayMetrics = context.resources.displayMetrics
+    private fun calcHorizontalPadding(view: View, boardWidth: Int): Int {
+        val width = view.measuredWidth
+        val recyclerViewWidth = (dimensionRepository.areaSize() * boardWidth)
+        val separatorsWidth = (dimensionRepository.areaSeparator() * (boardWidth + 2))
+        return ((width - recyclerViewWidth - separatorsWidth) / 2).coerceAtLeast(0.0f).nextDown().toInt()
+    }
 
-        val typedValue = TypedValue()
-        val actionBarHeight = if (context.theme.resolveAttribute(android.R.attr.actionBarSize, typedValue, true)) {
-            TypedValue.complexToDimensionPixelSize(typedValue.data, resources.displayMetrics)
-        } else {
-            0
-        }
-        val resourceId: Int = resources.getIdentifier("navigation_bar_height", "dimen", "android")
-        val navigationHeight = if (resourceId > 0) {
-            resources.getDimensionPixelSize(resourceId)
-        } else 0
+    private fun calcVerticalPadding(view: View, boardHeight: Int): Int {
+        val height = view.measuredHeight
+        val hasAds = !preferencesRepository.isPremiumEnabled()
+        val adsHeight = if (hasAds) dpFromPx(view.context, 60.0f) else 0
 
-        val height = displayMetrics.heightPixels
         val recyclerViewHeight = (dimensionRepository.areaSize() * boardHeight)
         val separatorsHeight = (2 * dimensionRepository.areaSeparator() * (boardHeight - 1))
+        val calculatedHeight = (height - recyclerViewHeight - separatorsHeight - adsHeight)
+        return ((calculatedHeight / 2) - adsHeight).coerceAtLeast(0.0f).toInt()
+    }
 
-        val calculatedHeight = (height - actionBarHeight - navigationHeight - recyclerViewHeight - separatorsHeight)
-
-        return (calculatedHeight / 2).coerceAtLeast(0.0f).toInt()
+    open fun dpFromPx(context: Context, px: Float): Int {
+        return (px / context.resources.displayMetrics.density).toInt()
     }
 }

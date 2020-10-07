@@ -15,20 +15,22 @@ import androidx.core.view.ViewCompat
 import dev.lucasnlm.antimine.common.R
 import dev.lucasnlm.antimine.common.level.models.Area
 import dev.lucasnlm.antimine.common.level.models.AreaPaintSettings
-import dev.lucasnlm.antimine.common.level.models.AreaPalette
 import dev.lucasnlm.antimine.common.level.models.Mark
+import dev.lucasnlm.antimine.core.themes.model.AppTheme
 
 class AreaView : View {
     // Used on Wear OS
-    private var isAmbientMode = false
-    private var isLowBitAmbient = false
+    private var isAmbientMode: Boolean = false
+    private var isLowBitAmbient: Boolean = false
 
     private var area: Area? = null
     private lateinit var paintSettings: AreaPaintSettings
-    private lateinit var palette: AreaPalette
+    private lateinit var theme: AppTheme
 
     private val gestureDetector: GestureDetector by lazy {
-        GestureDetector(context, GestureDetector.SimpleOnGestureListener())
+        GestureDetector(context, GestureDetector.SimpleOnGestureListener()).apply {
+            setIsLongpressEnabled(false)
+        }
     }
 
     constructor(context: Context) : super(context)
@@ -39,13 +41,20 @@ class AreaView : View {
 
     init {
         isHapticFeedbackEnabled = true
+        isClickable = true
     }
 
     fun setOnDoubleClickListener(listener: GestureDetector.OnDoubleTapListener) {
         gestureDetector.setOnDoubleTapListener(listener)
     }
 
-    fun bindField(area: Area, isAmbientMode: Boolean, isLowBitAmbient: Boolean, paintSettings: AreaPaintSettings) {
+    fun bindField(
+        area: Area,
+        theme: AppTheme,
+        isAmbientMode: Boolean,
+        isLowBitAmbient: Boolean,
+        paintSettings: AreaPaintSettings
+    ) {
         this.paintSettings = paintSettings
 
         bindContentDescription(area)
@@ -57,15 +66,9 @@ class AreaView : View {
         ).firstOrNull { it } ?: false
 
         if (changed) {
-            this.palette = if (isAmbientMode) {
-                AreaPalette.fromContrast(context)
-            } else {
-                AreaPalette.fromDefault(context)
-            }
-
             this.isAmbientMode = isAmbientMode
             this.isLowBitAmbient = isLowBitAmbient
-
+            this.theme = theme
             this.paintSettings.painter.isAntiAlias = !isAmbientMode || isAmbientMode && !isLowBitAmbient
             this.area = area.copy()
 
@@ -103,12 +106,7 @@ class AreaView : View {
                 area.hasMine -> IMPORTANT_FOR_ACCESSIBILITY_YES
                 area.mistake -> IMPORTANT_FOR_ACCESSIBILITY_YES
                 area.mark.isNotNone() -> IMPORTANT_FOR_ACCESSIBILITY_YES
-                !area.isCovered ->
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                        IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-                    } else {
-                        IMPORTANT_FOR_ACCESSIBILITY_NO
-                    }
+                !area.isCovered -> IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 else -> IMPORTANT_FOR_ACCESSIBILITY_YES
             }
         )
@@ -130,7 +128,7 @@ class AreaView : View {
             isLowBitAmbient,
             isFocused,
             paintSettings,
-            palette
+            theme
         )
     }
 
@@ -142,7 +140,9 @@ class AreaView : View {
     private fun getRippleEffect(context: Context): Drawable? {
         val outValue = TypedValue()
         context.theme.resolveAttribute(
-            android.R.attr.selectableItemBackground, outValue, true
+            android.R.attr.selectableItemBackground,
+            outValue,
+            true
         )
         return ContextCompat.getDrawable(context, outValue.resourceId)
     }

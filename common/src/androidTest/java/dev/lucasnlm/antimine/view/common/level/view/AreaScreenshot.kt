@@ -8,9 +8,9 @@ import android.graphics.Paint
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.lucasnlm.antimine.common.level.models.Area
 import dev.lucasnlm.antimine.common.level.models.Mark
-import dev.lucasnlm.antimine.common.level.models.AreaPalette
 import dev.lucasnlm.antimine.common.level.view.AreaAdapter
 import dev.lucasnlm.antimine.common.level.view.paintOnCanvas
+import dev.lucasnlm.antimine.core.themes.repository.Themes.LightTheme
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -21,7 +21,7 @@ class AreaScreenshot {
     private lateinit var context: Context
 
     private fun saveImage(area: Area, fileName: String, ambientMode: Boolean): File {
-        val paintSettings = AreaAdapter.createAreaPaintSettings(context, false)
+        val paintSettings = AreaAdapter.createAreaPaintSettings(context, 128.0f)
         val size = paintSettings.rectF.width().toInt()
         val testPadding = 4
         val bitmap = Bitmap.createBitmap(size + testPadding, size + testPadding, Bitmap.Config.ARGB_8888)
@@ -48,7 +48,7 @@ class AreaScreenshot {
             isLowBitAmbient = false,
             isFocused = false,
             paintSettings = paintSettings,
-            areaPalette = if (ambientMode) AreaPalette.fromContrast(context) else AreaPalette.fromLightTheme()
+            theme = LightTheme
         )
         canvas.restore()
 

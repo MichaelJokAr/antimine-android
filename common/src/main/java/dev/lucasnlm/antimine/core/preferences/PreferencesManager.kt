@@ -2,19 +2,9 @@ package dev.lucasnlm.antimine.core.preferences
 
 import android.content.Context
 import androidx.preference.PreferenceManager
-import javax.inject.Inject
 
-interface IPreferencesManager {
-    fun getBoolean(key: String, defaultValue: Boolean): Boolean
-    fun putBoolean(key: String, value: Boolean)
-    fun getInt(key: String, defaultValue: Int): Int
-    fun putInt(key: String, value: Int)
-    fun removeKey(key: String)
-    fun contains(key: String): Boolean
-}
-
-class PreferencesManager @Inject constructor(
-    private val context: Context
+class PreferencesManager(
+    private val context: Context,
 ) : IPreferencesManager {
     private val preferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(context)

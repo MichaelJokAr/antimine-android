@@ -5,8 +5,8 @@ import dev.lucasnlm.antimine.common.level.models.Score
 import dev.lucasnlm.antimine.common.level.models.Minefield
 
 sealed class Analytics(
-    val title: String,
-    val extra: Map<String, String> = mapOf()
+    val name: String,
+    val extra: Map<String, String> = mapOf(),
 ) {
     object Open : Analytics("Open game")
 
@@ -14,7 +14,7 @@ sealed class Analytics(
         minefield: Minefield,
         difficulty: Difficulty,
         seed: Long,
-        useAccessibilityMode: Boolean
+        areaSizeMultiplier: Int,
     ) : Analytics(
         "New Game",
         mapOf(
@@ -23,7 +23,7 @@ sealed class Analytics(
             "Width" to minefield.width.toString(),
             "Height" to minefield.height.toString(),
             "Mines" to minefield.mines.toString(),
-            "Accessibility" to useAccessibilityMode.toString()
+            "Size Multiplier" to areaSizeMultiplier.toString()
         )
     )
 
@@ -31,8 +31,8 @@ sealed class Analytics(
         minefield: Minefield,
         difficulty: Difficulty,
         seed: Long,
-        useAccessibilityMode: Boolean,
-        firstOpen: Int
+        areaSizeMultiplier: Int,
+        firstOpen: Int,
     ) : Analytics(
         "Retry Game",
         mapOf(
@@ -41,7 +41,7 @@ sealed class Analytics(
             "Width" to minefield.width.toString(),
             "Height" to minefield.height.toString(),
             "Mines" to minefield.mines.toString(),
-            "Accessibility" to useAccessibilityMode.toString(),
+            "Size Multiplier" to areaSizeMultiplier.toString(),
             "First Open" to firstOpen.toString()
         )
     )
@@ -89,13 +89,37 @@ sealed class Analytics(
 
     object OpenStats : Analytics("Open Stats")
 
+    object OpenThemes : Analytics("Open Themes")
+
+    object TutorialStarted : Analytics("Tutorial Started")
+
+    object TutorialCompleted : Analytics("Tutorial Completed")
+
+    object OpenAchievements : Analytics("Open Achievements")
+
+    object OpenLeaderboards : Analytics("Open Leaderboards")
+
+    data class ClickTheme(
+        private val themeId: Long,
+    ) : Analytics("Click Theme", mapOf("id" to themeId.toString()))
+
     object OpenSettings : Analytics("Open Settings")
 
     object OpenSaveHistory : Analytics("Open Save History")
 
+    object ShowIapDialog : Analytics("Shown IAP Dialog")
+
+    object DenyIapDialog : Analytics("IAP Dialog Deny")
+
+    object UnlockIapDialog : Analytics("IAP Dialog Unlock")
+
+    object UnlockRewardedDialog : Analytics("Rewarded Dialog Unlock")
+
     class ShowRatingRequest(usages: Int) : Analytics("Shown Rating Request", mapOf("Usages" to usages.toString()))
 
-    class TapRatingRequest(from: String) : Analytics("Rating Request", mapOf("From" to from))
+    object TapRatingRequest : Analytics("Rating Request")
+
+    object UseTip : Analytics("Use Tip")
 
     class TapGameReset(resign: Boolean) : Analytics("Game reset", mapOf("Resign" to resign.toString()))
 }

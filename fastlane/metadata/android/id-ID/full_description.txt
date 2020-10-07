@@ -1,0 +1,56 @@
+Uji kekuatan penalaran Anda pada permainan puzzle yang menantang di mana Anda harus menyelesaikan ladang ranjau tanpa meledakkan ranjau apa pun.
+Ini adalah versi minimalis dan modern dari Minesweeper klasik.
+
+Apakah Anda dapat membersihkan ladang ranjau? Ayo!
+
+OBJEKTIF
+Ini seperti Minesweeper. Anda memenangkan permainan saat Anda menandai setiap ranjau di ladang ranjau. Berhati-hatilah untuk tidak memicunya!
+
+TIDAK MENERKA
+Permainan ini memiliki algoritma yang selalu menciptakan ladang ranjau yang dapat dipecahkan. Anda tidak perlu menebak di mana tambang terakhir berada!
+
+LEVEL PERMAINAN
+Sama seperti Minesweeper, permainan ini memiliki level berbeda: Pemula, Menengah, dan Ahli. Tetapi permainan juga memiliki mode progresif unik yang semakin sulit saat Anda menang.
+
+LEVEL KUSTOM
+Jika mode standar tidak cukup, Anda dapat membuat tingkat kesulitan Anda!
+
+TEMA
+Antimine memiliki lebih dari 15 tema (termasuk terang, gelap, dan AMOLED). Dan segera akan lebih banyak ditambahkan!
+
+MINIMALIS
+Tampilan dan nuansa bersih: visual minimalis dan juga ukuran aplikasi yang ringan (kurang dari 9 MB).
+
+TUTORIAL
+Apakah Anda tidak tahu cara bermain Minesweeper? Tidak masalah, Anda dapat memainkan level tutorial kami dan mengaktifkan Tips di pengaturan.
+
+STATISTIK
+Periksa hasil dan perkembangan Anda.
+
+ASISTEN PERMAINAN
+Permainan ini secara otomatis akan menandai kotak yang Anda isolasi. 
+
+KUSTOMISASI
+Anda dapat mengubah permainan untuk membuatnya seperti yang Anda inginkan. 
+Contoh: Bantuan, animasi, umpan balik haptic, tanda tanya.
+
+KONTROL
+Ini mendukung empat skema kontrol yang berbeda. Contoh: bendera menggunakan ketukan atau tekan lama.
+
+PRESTASI DAN PAPAN PERINGKAT
+Anda memiliki delapan pencapaian untuk dibuka dan papan peringkat berbeda untuk dibagikan dengan teman-teman Anda.
+
+AKSESIBILITAS
+Anda dapat menyesuaikan permainan ini dengan kebutuhan Anda: mengubah ukuran kotak, radius, waktu sentuh, dan dukungan layar pembaca.
+Kami selalu berusaha meningkatkan pengaturan aksesibilitas kami. Jika Anda melewatkan sesuatu, beri kami umpan balik!
+
+APLIKASI BERFOKUS ANDROID
+Ini mendukung fitur Android yang keren seperti layar terpisah, pintasan, berbagi, tema sistem, dan selalu mendukung versi terakhir.
+
+DARING ATAU LURING
+Anda tidak perlu daring untuk memainkan permainan ini!
+
+PENYIMPANAN OTOMATIS
+Anda dapat memulai permainan dan melanjutkannya nanti! Ini akan menyimpan permainan Anda secara otomatis.
+
+Nikmati.

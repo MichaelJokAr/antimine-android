@@ -1,5 +1,6 @@
 package dev.lucasnlm.antimine.common.level.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Paint
 import android.graphics.RectF
@@ -13,14 +14,18 @@ import androidx.recyclerview.widget.RecyclerView
 import dev.lucasnlm.antimine.common.R
 import dev.lucasnlm.antimine.common.level.models.Area
 import dev.lucasnlm.antimine.common.level.models.AreaPaintSettings
+import dev.lucasnlm.antimine.common.level.repository.IDimensionRepository
 import dev.lucasnlm.antimine.common.level.viewmodel.GameViewModel
 import dev.lucasnlm.antimine.core.control.ControlStyle
 import dev.lucasnlm.antimine.core.preferences.IPreferencesRepository
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class AreaAdapter(
     context: Context,
     private val viewModel: GameViewModel,
-    private val preferencesRepository: IPreferencesRepository
+    private val preferencesRepository: IPreferencesRepository,
+    dimensionRepository: IDimensionRepository,
 ) : RecyclerView.Adapter<AreaViewHolder>() {
 
     private var field = listOf<Area>()
@@ -29,11 +34,14 @@ class AreaAdapter(
     private val paintSettings: AreaPaintSettings
 
     private var clickEnabled: Boolean = false
-    private var longPressAt: Long = 0L
 
     init {
         setHasStableIds(true)
-        paintSettings = createAreaPaintSettings(context.applicationContext, viewModel.useAccessibilityMode())
+        paintSettings = createAreaPaintSettings(
+            context.applicationContext,
+            dimensionRepository.areaSize(),
+            preferencesRepository.squareRadius(),
+        )
     }
 
     fun setAmbientMode(isAmbientMode: Boolean, isLowBitAmbient: Boolean) {
@@ -45,100 +53,106 @@ class AreaAdapter(
         clickEnabled = value
     }
 
-    fun bindField(field: Sequence<Area>) {
-        this.field = field.toList()
+    fun bindField(field: List<Area>) {
+        this.field = field
         notifyDataSetChanged()
     }
 
     override fun getItemCount(): Int = field.size
 
+    private fun AreaView.onClickablePosition(position: Int, action: suspend (Int) -> Unit): Boolean {
+        return when {
+            position == RecyclerView.NO_POSITION -> {
+                Log.d(TAG, "Item no longer exists.")
+                false
+            }
+            clickEnabled -> {
+                requestFocus()
+                GlobalScope.launch {
+                    action(position)
+                }
+                true
+            }
+            else -> false
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AreaViewHolder {
         val view = AreaView(parent.context)
         return AreaViewHolder(view).apply {
-            view.setOnDoubleClickListener(object : GestureDetector.OnDoubleTapListener {
-                override fun onDoubleTap(e: MotionEvent?): Boolean {
-                    return false
-                }
-
-                override fun onDoubleTapEvent(e: MotionEvent?): Boolean {
-                    val position = adapterPosition
-                    return when {
-                        position == RecyclerView.NO_POSITION -> {
-                            Log.d(TAG, "Item no longer exists.")
-                            false
+            val style = preferencesRepository.controlStyle()
+            if (style == ControlStyle.DoubleClick || style == ControlStyle.DoubleClickInverted) {
+                view.isClickable = true
+                view.setOnDoubleClickListener(
+                    object : GestureDetector.OnDoubleTapListener {
+                        override fun onDoubleTap(e: MotionEvent?): Boolean {
+                            return view.onClickablePosition(absoluteAdapterPosition) {
+                                viewModel.onDoubleClick(it)
+                            }
                         }
-                        clickEnabled -> {
-                            viewModel.onDoubleClickArea(position)
+
+                        override fun onDoubleTapEvent(e: MotionEvent?): Boolean {
+                            return false
+                        }
+
+                        override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
+                            return view.onClickablePosition(absoluteAdapterPosition) {
+                                viewModel.onSingleClick(it)
+                            }
+                        }
+                    }
+                )
+            } else {
+                view.setOnTouchListener { _, motionEvent ->
+                    when (motionEvent.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            view.isPressed = true
                             true
                         }
-                        else -> {
-                            false
+                        MotionEvent.ACTION_UP -> {
+                            view.isPressed = false
+                            val dt = motionEvent.eventTime - motionEvent.downTime
+
+                            if (dt > preferencesRepository.customLongPressTimeout()) {
+                                view.onClickablePosition(absoluteAdapterPosition) {
+                                    viewModel.onLongClick(it)
+                                }
+                            } else {
+                                view.onClickablePosition(absoluteAdapterPosition) {
+                                    viewModel.onSingleClick(it)
+                                }
+                            }
                         }
-                    }
-                }
-
-                override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
-                    if (preferencesRepository.controlStyle() == ControlStyle.DoubleClick) {
-                        val position = adapterPosition
-                        if (position == RecyclerView.NO_POSITION) {
-                            Log.d(TAG, "Item no longer exists.")
-                        } else if (clickEnabled) {
-                            viewModel.onSingleClick(position)
-                            return true
-                        }
-                    }
-                    return false
-                }
-            })
-
-            itemView.setOnLongClickListener { target ->
-                target.requestFocus()
-
-                val position = adapterPosition
-                if (position == RecyclerView.NO_POSITION) {
-                    Log.d(TAG, "Item no longer exists.")
-                } else if (clickEnabled) {
-                    viewModel.onLongClick(position)
-                }
-
-                true
-            }
-
-            itemView.setOnClickListener {
-                if (preferencesRepository.controlStyle() != ControlStyle.DoubleClick) {
-                    val position = adapterPosition
-                    if (position == RecyclerView.NO_POSITION) {
-                        Log.d(TAG, "Item no longer exists.")
-                    } else if (clickEnabled) {
-                        viewModel.onSingleClick(position)
+                        else -> false
                     }
                 }
             }
 
-            itemView.setOnKeyListener { _, keyCode, keyEvent ->
+            view.setOnKeyListener { _, keyCode, keyEvent ->
                 var handled = false
-
                 if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
                     when (keyEvent.action) {
                         KeyEvent.ACTION_DOWN -> {
-                            longPressAt = System.currentTimeMillis()
                             handled = true
+                            view.isPressed = true
                         }
                         KeyEvent.ACTION_UP -> {
-                            if (clickEnabled) {
-                                val value = System.currentTimeMillis() - longPressAt
-                                if (value > 300L) {
-                                    view.performLongClick()
-                                } else {
-                                    view.callOnClick()
+                            handled = true
+                            view.isPressed = false
+                            val dt = keyEvent.eventTime - keyEvent.downTime
+                            if (dt > preferencesRepository.customLongPressTimeout()) {
+                                view.onClickablePosition(absoluteAdapterPosition) {
+                                    viewModel.onLongClick(it)
+                                }
+                            } else {
+                                view.onClickablePosition(absoluteAdapterPosition) {
+                                    viewModel.onSingleClick(it)
                                 }
                             }
-                            longPressAt = System.currentTimeMillis()
-                            handled = true
                         }
                     }
                 }
-
                 handled
             }
         }
@@ -152,7 +166,7 @@ class AreaAdapter(
         val field = getItem(position)
         holder.run {
             if (itemView is AreaView) {
-                itemView.bindField(field, isAmbientMode, isLowBitAmbient, paintSettings)
+                itemView.bindField(field, viewModel.getAppTheme(), isAmbientMode, isLowBitAmbient, paintSettings)
             }
         }
     }
@@ -160,13 +174,8 @@ class AreaAdapter(
     companion object {
         val TAG = AreaAdapter::class.simpleName!!
 
-        fun createAreaPaintSettings(context: Context, useLargeArea: Boolean): AreaPaintSettings {
+        fun createAreaPaintSettings(context: Context, size: Float, squareRadius: Int): AreaPaintSettings {
             val resources = context.resources
-            val size = if (useLargeArea) {
-                resources.getDimension(R.dimen.accessible_field_size)
-            } else {
-                resources.getDimension(R.dimen.field_size)
-            }
             return AreaPaintSettings(
                 Paint().apply {
                     isAntiAlias = true
@@ -177,7 +186,7 @@ class AreaAdapter(
                     textAlign = Paint.Align.CENTER
                 },
                 RectF(0.0f, 0.0f, size, size),
-                resources.getDimension(R.dimen.field_radius)
+                resources.getDimension(R.dimen.field_radius) * squareRadius
             )
         }
     }

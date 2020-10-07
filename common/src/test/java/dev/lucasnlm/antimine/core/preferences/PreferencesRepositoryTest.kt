@@ -35,16 +35,39 @@ private class TestPreferenceManager : IPreferencesManager {
 
 class PreferencesRepositoryTest {
     @Test
+    fun testProgressValue() {
+        val preferenceManager = TestPreferenceManager()
+        val preferencesRepository = PreferencesRepository(preferenceManager, 400)
+
+        assertEquals(0, preferencesRepository.getProgressiveValue())
+
+        preferencesRepository.incrementProgressiveValue()
+        assertEquals(1, preferencesRepository.getProgressiveValue())
+
+        preferencesRepository.incrementProgressiveValue()
+        assertEquals(2, preferencesRepository.getProgressiveValue())
+
+        preferencesRepository.decrementProgressiveValue()
+        assertEquals(1, preferencesRepository.getProgressiveValue())
+
+        preferencesRepository.decrementProgressiveValue()
+        assertEquals(0, preferencesRepository.getProgressiveValue())
+
+        preferencesRepository.decrementProgressiveValue()
+        assertEquals(0, preferencesRepository.getProgressiveValue())
+    }
+
+    @Test
     fun testMigrationWhenUsingDoubleClick() {
         val preferenceManager = TestPreferenceManager()
         preferenceManager.putBoolean("preference_double_click_open", true)
         assertTrue(preferenceManager.values["preference_double_click_open"] as Boolean)
 
-        val preferencesRepository = PreferencesRepository(preferenceManager)
+        val preferencesRepository = PreferencesRepository(preferenceManager, 400)
 
         assertTrue(preferenceManager.values["preference_double_click_open"] == null)
         assertEquals(1, preferenceManager.values["preference_control_style"])
-        assertFalse(preferencesRepository.getBoolean("preference_double_click_open", false))
+        assertFalse(preferenceManager.getBoolean("preference_double_click_open", false))
     }
 
     @Test
@@ -53,9 +76,42 @@ class PreferencesRepositoryTest {
         preferenceManager.putBoolean("preference_double_click_open", false)
         assertFalse(preferenceManager.values["preference_double_click_open"] as Boolean)
 
-        val preferencesRepository = PreferencesRepository(preferenceManager)
+        val preferencesRepository = PreferencesRepository(preferenceManager, 400)
 
         assertTrue(preferenceManager.values["preference_double_click_open"] == null)
-        assertFalse(preferencesRepository.getBoolean("preference_double_click_open", false))
+        assertFalse(preferenceManager.getBoolean("preference_double_click_open", false))
+    }
+
+    @Test
+    fun testMigrationLargeAreaOn() {
+        val preferenceManager = TestPreferenceManager()
+        preferenceManager.putBoolean("preference_large_area", true)
+        assertTrue(preferenceManager.values["preference_large_area"] as Boolean)
+
+        val preferencesRepository = PreferencesRepository(preferenceManager, 400)
+
+        assertTrue(preferenceManager.values["preference_large_area"] == null)
+        assertEquals(63, preferenceManager.getInt("preference_area_size", -1))
+    }
+
+    @Test
+    fun testMigrationLargeAreaOff() {
+        val preferenceManager = TestPreferenceManager()
+        PreferencesRepository(preferenceManager, 400)
+
+        assertTrue(preferenceManager.values["preference_large_area"] == null)
+        assertEquals(50, preferenceManager.getInt("preference_area_size", -1))
+    }
+
+    @Test
+    fun testMigrationLargeAreaFalse() {
+        val preferenceManager = TestPreferenceManager()
+        preferenceManager.putBoolean("preference_large_area", false)
+        assertEquals(false, preferenceManager.values["preference_large_area"] as Boolean)
+
+        PreferencesRepository(preferenceManager, 400)
+
+        assertTrue(preferenceManager.values["preference_large_area"] == null)
+        assertEquals(50, preferenceManager.getInt("preference_area_size", -1))
     }
 }

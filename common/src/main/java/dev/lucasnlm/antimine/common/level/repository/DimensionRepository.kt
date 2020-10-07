@@ -9,6 +9,7 @@ import dev.lucasnlm.antimine.core.preferences.IPreferencesRepository
 interface IDimensionRepository {
     fun areaSize(): Float
     fun areaSizeWithPadding(): Float
+    fun defaultAreaSize(): Float
     fun areaSeparator(): Float
     fun displaySize(): Size
     fun actionBarSize(): Int
@@ -17,18 +18,18 @@ interface IDimensionRepository {
 
 data class Size(
     val width: Int,
-    val height: Int
+    val height: Int,
 )
 
 class DimensionRepository(
     private val context: Context,
-    private val preferencesRepository: IPreferencesRepository
+    private val preferencesRepository: IPreferencesRepository,
 ) : IDimensionRepository {
 
-    override fun areaSize(): Float = if (preferencesRepository.useLargeAreas()) {
-        context.resources.getDimension(R.dimen.accessible_field_size)
-    } else {
-        context.resources.getDimension(R.dimen.field_size)
+    override fun areaSize(): Float {
+        val multiplier = preferencesRepository.areaSizeMultiplier() / 100.0f
+        val regularSize = context.resources.getDimension(R.dimen.field_size)
+        return regularSize * multiplier
     }
 
     override fun areaSeparator(): Float {
@@ -37,6 +38,12 @@ class DimensionRepository(
 
     override fun areaSizeWithPadding(): Float {
         return areaSize() + 2 * areaSeparator()
+    }
+
+    override fun defaultAreaSize(): Float {
+        val multiplier = 0.5f
+        val maxArea = context.resources.getDimension(R.dimen.field_size)
+        return maxArea * multiplier
     }
 
     override fun displaySize(): Size = with(Resources.getSystem().displayMetrics) {
@@ -54,7 +61,6 @@ class DimensionRepository(
     }
 
     override fun navigationBarHeight(): Int {
-        // TODO use official mode if available
         val resources = context.resources
         val resourceId: Int = resources.getIdentifier(NAVIGATION_BAR_HEIGHT, DEF_TYPE_DIMEN, DEF_PACKAGE)
         return if (resourceId > 0) { resources.getDimensionPixelSize(resourceId) } else 0

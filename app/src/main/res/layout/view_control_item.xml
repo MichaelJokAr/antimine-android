@@ -9,11 +9,9 @@
     android:background="?android:attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:paddingLeft="32dp"
-    android:paddingRight="48dp"
     android:paddingStart="32dp"
     android:paddingEnd="48dp"
-    android:paddingVertical="24dp">
+    android:paddingVertical="12dp">
 
     <androidx.appcompat.widget.AppCompatRadioButton
         android:id="@+id/radio"
@@ -35,19 +33,8 @@
         tools:text="">
 
         <TableRow>
-
-            <TextView
-                android:id="@+id/title"
-                android:textColor="@color/text_color"
-                android:textStyle="bold"
-                tools:text="Title" />
-        </TableRow>
-
-        <TableRow android:paddingVertical="4dp">
-
             <TextView
                 android:id="@+id/firstAction"
-                android:textColor="@color/text_color"
                 tools:text="First Action" />
 
             <TextView
@@ -64,10 +51,8 @@
         </TableRow>
 
         <TableRow>
-
             <TextView
                 android:id="@+id/secondAction"
-                android:textColor="@color/text_color"
                 tools:text="Long Tap" />
 
             <TextView

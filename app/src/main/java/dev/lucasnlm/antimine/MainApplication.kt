@@ -1,21 +1,40 @@
 package dev.lucasnlm.antimine
 
 import androidx.multidex.MultiDexApplication
-import dagger.hilt.android.HiltAndroidApp
-import dev.lucasnlm.antimine.core.analytics.AnalyticsManager
+import dev.lucasnlm.antimine.common.level.di.LevelModule
+import dev.lucasnlm.antimine.core.analytics.IAnalyticsManager
 import dev.lucasnlm.antimine.core.analytics.models.Analytics
-import javax.inject.Inject
+import dev.lucasnlm.antimine.core.di.CommonModule
+import dev.lucasnlm.antimine.core.preferences.IPreferencesRepository
+import dev.lucasnlm.antimine.di.AppModule
+import dev.lucasnlm.antimine.di.ViewModelModule
+import dev.lucasnlm.external.IAdsManager
+import org.koin.android.ext.android.inject
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
 
-@HiltAndroidApp
 open class MainApplication : MultiDexApplication() {
-    @Inject
-    lateinit var analyticsManager: AnalyticsManager
+    private val analyticsManager: IAnalyticsManager by inject()
+    private val preferencesRepository: IPreferencesRepository by inject()
+
+    private val adsManager: IAdsManager by inject()
 
     override fun onCreate() {
         super.onCreate()
+        startKoin {
+            androidContext(applicationContext)
+            modules(AppModule, CommonModule, LevelModule, ViewModelModule)
+        }
+
         analyticsManager.apply {
             setup(applicationContext, mapOf())
             sentEvent(Analytics.Open)
         }
+
+        if (BuildConfig.FLAVOR == "foss") {
+            preferencesRepository.setPremiumFeatures(true)
+        }
+
+        adsManager.start(applicationContext)
     }
 }

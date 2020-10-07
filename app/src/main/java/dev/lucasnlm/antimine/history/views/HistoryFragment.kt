@@ -3,43 +3,46 @@ package dev.lucasnlm.antimine.history.views
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import dagger.hilt.android.AndroidEntryPoint
 import dev.lucasnlm.antimine.R
-import dev.lucasnlm.antimine.common.level.repository.ISavesRepository
+import dev.lucasnlm.antimine.history.viewmodel.HistoryEvent
 import dev.lucasnlm.antimine.history.viewmodel.HistoryViewModel
+import dev.lucasnlm.external.IInstantAppManager
 import kotlinx.android.synthetic.main.fragment_history.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.android.synthetic.main.fragment_history.view.*
+import kotlinx.coroutines.flow.collect
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
 class HistoryFragment : Fragment(R.layout.fragment_history) {
-    @Inject
-    lateinit var savesRepository: ISavesRepository
+    private val historyViewModel by viewModel<HistoryViewModel>()
 
-    private val historyViewModel: HistoryViewModel by activityViewModels()
+    private val instantAppManager: IInstantAppManager by inject()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        saveHistory.apply {
-            addItemDecoration(DividerItemDecoration(view.context, DividerItemDecoration.VERTICAL))
-            layoutManager = LinearLayoutManager(view.context)
+        lifecycleScope.launchWhenCreated {
+            historyViewModel.sendEvent(HistoryEvent.LoadAllSaves)
 
-            historyViewModel.saves.observe(
-                viewLifecycleOwner,
-                Observer {
-                    adapter = HistoryAdapter(it)
+            historyViewModel.observeState().collect {
+                if (it.saveList.isEmpty()) {
+                    empty.visibility = View.GONE
                 }
-            )
-        }
 
-        GlobalScope.launch {
-            historyViewModel.loadAllSaves(savesRepository)
+                saveHistory.apply {
+                    addItemDecoration(DividerItemDecoration(view.context, DividerItemDecoration.VERTICAL))
+                    layoutManager = LinearLayoutManager(view.context)
+                    adapter = HistoryAdapter(it.saveList, historyViewModel)
+                }
+
+                if (it.showAds && !instantAppManager.isEnabled(view.context)) {
+                    view.ad_placeholder.visibility = View.VISIBLE
+                    view.ad_placeholder.loadAd()
+                }
+            }
         }
     }
 }

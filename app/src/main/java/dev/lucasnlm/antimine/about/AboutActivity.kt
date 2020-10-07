@@ -1,46 +1,44 @@
 package dev.lucasnlm.antimine.about
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
-import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import dev.lucasnlm.antimine.R
-import dev.lucasnlm.antimine.about.models.AboutEvent
+import dev.lucasnlm.antimine.ThematicActivity
+import dev.lucasnlm.antimine.about.viewmodel.AboutEvent
 import dev.lucasnlm.antimine.about.viewmodel.AboutViewModel
-import dev.lucasnlm.antimine.about.views.AboutInfoFragment
-import dev.lucasnlm.antimine.about.views.thirds.ThirdPartiesFragment
+import dev.lucasnlm.antimine.about.views.info.AboutInfoFragment
+import dev.lucasnlm.antimine.about.views.licenses.LicensesFragment
 import dev.lucasnlm.antimine.about.views.translators.TranslatorsFragment
+import dev.lucasnlm.antimine.support.SupportAppDialogFragment
+import kotlinx.coroutines.flow.collect
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class AboutActivity : AppCompatActivity(R.layout.activity_empty) {
-    private val aboutViewModel: AboutViewModel by viewModels()
+class AboutActivity : ThematicActivity(R.layout.activity_empty) {
+    private val aboutViewModel: AboutViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        aboutViewModel.eventObserver.observe(
-            this,
-            Observer { event ->
+
+        replaceFragment(AboutInfoFragment(), null)
+
+        lifecycleScope.launchWhenCreated {
+            aboutViewModel.observeEvent().collect { event ->
                 when (event) {
-                    AboutEvent.ThirdPartyLicenses -> {
-                        replaceFragment(ThirdPartiesFragment(), ThirdPartiesFragment.TAG)
+                    AboutEvent.SupportUs -> {
+                        showSupportAppDialog()
                     }
-                    AboutEvent.SourceCode -> {
-                        openSourceCode()
+                    AboutEvent.ThirdPartyLicenses -> {
+                        replaceFragment(LicensesFragment(), LicensesFragment.TAG)
                     }
                     AboutEvent.Translators -> {
                         replaceFragment(TranslatorsFragment(), TranslatorsFragment.TAG)
                     }
-                    else -> {
-                        replaceFragment(AboutInfoFragment(), null)
-                    }
+                    else -> {}
                 }
             }
-        )
-
-        replaceFragment(AboutInfoFragment(), null)
+        }
     }
 
     private fun replaceFragment(fragment: Fragment, stackName: String?) {
@@ -53,11 +51,10 @@ class AboutActivity : AppCompatActivity(R.layout.activity_empty) {
         }.commitAllowingStateLoss()
     }
 
-    private fun openSourceCode() {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_CODE)))
-    }
-
-    companion object {
-        private const val SOURCE_CODE = "https://github.com/lucasnlm/antimine-android"
+    private fun showSupportAppDialog() {
+        if (supportFragmentManager.findFragmentByTag(SupportAppDialogFragment.TAG) == null) {
+            SupportAppDialogFragment.newRequestSupportDialog()
+                .show(supportFragmentManager, SupportAppDialogFragment.TAG)
+        }
     }
 }

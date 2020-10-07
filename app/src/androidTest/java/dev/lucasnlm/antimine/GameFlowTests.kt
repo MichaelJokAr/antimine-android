@@ -106,7 +106,6 @@ class GameFlowTests {
             .perform(NavigationViewActions.navigateTo(R.id.control))
 
         onView(withText(R.string.standard)).perform(click())
-        onView(withText(R.string.flag_first)).perform(click())
 
         onView(withText(R.string.ok)).perform(click())
     }
@@ -159,5 +158,17 @@ class GameFlowTests {
         onView(isRoot()).perform(ViewActions.pressBack())
 
         onView(isRoot()).perform(ViewActions.pressBack())
+    }
+
+    @Test
+    fun testGoToThemes() {
+        onView(withId(R.id.drawer))
+            .check(matches(isClosed(Gravity.START)))
+            .perform(DrawerActions.open())
+
+        onView(withId(R.id.navigationView))
+            .perform(NavigationViewActions.navigateTo(R.id.themes))
+
+        onView(withText(R.string.themes)).check(matches(isDisplayed()))
     }
 }

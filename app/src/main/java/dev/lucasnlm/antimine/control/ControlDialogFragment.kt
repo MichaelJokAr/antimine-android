@@ -8,35 +8,24 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDialogFragment
-import androidx.fragment.app.activityViewModels
-import dagger.hilt.android.AndroidEntryPoint
 import dev.lucasnlm.antimine.R
-import dev.lucasnlm.antimine.control.model.ControlDetails
 import dev.lucasnlm.antimine.control.view.ControlItemView
+import dev.lucasnlm.antimine.control.view.SimpleControlItemView
+import dev.lucasnlm.antimine.control.viewmodel.ControlEvent
 import dev.lucasnlm.antimine.control.viewmodel.ControlViewModel
-import dev.lucasnlm.antimine.core.preferences.IPreferencesRepository
-import javax.inject.Inject
+import dev.lucasnlm.antimine.core.control.ControlStyle
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
 class ControlDialogFragment : AppCompatDialogFragment() {
-    @Inject
-    lateinit var preferencesRepository: IPreferencesRepository
-
-    private val controlViewModel by activityViewModels<ControlViewModel>()
+    private val controlViewModel by viewModel<ControlViewModel>()
     private val adapter by lazy { ControlListAdapter(controlViewModel) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        adapter.setList(controlViewModel.gameControlOptions)
-    }
-
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val currentControl = preferencesRepository.controlStyle().ordinal
-
-        return AlertDialog.Builder(requireContext(), R.style.MyDialog).apply {
+        val state = controlViewModel.singleState()
+        return AlertDialog.Builder(requireContext()).apply {
             setTitle(R.string.control)
-            setSingleChoiceItems(adapter, currentControl, null)
-            setPositiveButton(R.string.ok, null) // TODO OK
+            setSingleChoiceItems(adapter, state.selectedIndex, null)
+            setPositiveButton(R.string.ok, null)
         }.create()
     }
 
@@ -50,28 +39,44 @@ class ControlDialogFragment : AppCompatDialogFragment() {
     private class ControlListAdapter(
         private val controlViewModel: ControlViewModel
     ) : BaseAdapter() {
-        private var selected = controlViewModel.controlTypeSelected.value
-        private var controlList = listOf<ControlDetails>()
-
-        fun setList(list: List<ControlDetails>) {
-            controlList = list
-        }
+        private val controlList = controlViewModel.singleState().gameControls
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-            val view = if (convertView == null) {
-                ControlItemView(parent!!.context)
-            } else {
-                (convertView as ControlItemView)
-            }
+            if (getItemViewType(position) == USE_COMMON_CONTROL_TYPE) {
+                val view = if (convertView == null) {
+                    ControlItemView(parent!!.context)
+                } else {
+                    (convertView as ControlItemView)
+                }
 
-            return view.apply {
-                val controlModel = controlList[position]
-                bind(controlModel)
-                setRadio(selected == controlModel.controlStyle)
-                setOnClickListener {
-                    controlViewModel.selectControlType(controlModel.controlStyle)
-                    selected = controlModel.controlStyle
-                    notifyDataSetChanged()
+                val selected = controlViewModel.singleState().selected
+
+                return view.apply {
+                    val controlModel = controlList[position]
+                    bind(controlModel)
+                    setRadio(selected == controlModel.controlStyle)
+                    setOnClickListener {
+                        controlViewModel.sendEvent(ControlEvent.SelectControlStyle(controlModel.controlStyle))
+                        notifyDataSetChanged()
+                    }
+                }
+            } else {
+                val view = if (convertView == null) {
+                    SimpleControlItemView(parent!!.context)
+                } else {
+                    (convertView as SimpleControlItemView)
+                }
+
+                val selected = controlViewModel.singleState().selected
+
+                return view.apply {
+                    val controlModel = controlList[position]
+                    bind(controlModel)
+                    setRadio(selected == controlModel.controlStyle)
+                    setOnClickListener {
+                        controlViewModel.sendEvent(ControlEvent.SelectControlStyle(controlModel.controlStyle))
+                        notifyDataSetChanged()
+                    }
                 }
             }
         }
@@ -83,9 +88,21 @@ class ControlDialogFragment : AppCompatDialogFragment() {
         override fun getItemId(position: Int): Long = controlList[position].id
 
         override fun getCount(): Int = controlList.count()
+
+        override fun getItemViewType(position: Int): Int {
+            return if (controlList[position].controlStyle == ControlStyle.SwitchMarkOpen) {
+                USE_SIMPLE_CONTROL_TYPE
+            } else {
+                USE_COMMON_CONTROL_TYPE
+            }
+        }
+
+        override fun getViewTypeCount(): Int = 2
     }
 
     companion object {
         val TAG = ControlDialogFragment::class.simpleName!!
+        private const val USE_COMMON_CONTROL_TYPE = 1
+        private const val USE_SIMPLE_CONTROL_TYPE = 0
     }
 }
